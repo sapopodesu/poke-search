@@ -1,20 +1,48 @@
 ---
 import articles from '../data/articles.json';
 
-// 検索したくなる戦術・ギミックの候補リスト
-const conceptKeywords = [
+// 対戦特有の基本戦術・略語（カタカナ以外も含む）
+const manualKeywords = [
   'TOD', 'バトン', '受けル', '受けループ', '壁展開', 'ステロ', 'みがまも', 
   '対面', '一撃', 'トリル', '毒菱', '晴れ', '雨', '砂', '雪', '起点', 
   'チョッキ', 'スカーフ', 'ハチマキ', 'メガネ', 'ラム', 'タスキ', '風船', 
-  '弱点保険', '呪い', 'あくび', 'イリュージョン', '変態', 'マイナー', '絶対零度'
+  '弱点保険', '呪い', 'あくび', 'イリュージョン', '変態', 'マイナー', '絶対零度', '電磁波', '塩漬け'
 ];
 
-// 記事内に実際に存在するキーワードだけを抽出
-const presentKeywords = conceptKeywords.filter(word => {
-  return articles.some(article => {
+// 一般的すぎてキーワードとして面白くない単語（除外リスト）
+const ignoreWords = new Set([
+  'シーズン', '構築', '最終', 'ランク', 'パーティ', 'パーティー', 'シングル', 'ダブル',
+  'ポケモン', 'レポート', 'スペシャル', 'メンバー', 'アローラ', 'ガラル', 'パルデア',
+  'ノート', 'ブログ', '記事', '対戦', '育成', '調整', '解説', '考察', '結果', '達成'
+]);
+
+// 記事タイトルと本文から2文字以上のカタカナ単語を自動抽出
+const autoExtracted = new Set<string>();
+
+articles.forEach(article => {
+  const textContent = `${article.title || ''} ${article.text || article.content || ''}`;
+  // 2文字以上のカタカナ（ー含む）を検索
+  const matches = textContent.match(/[\u30A1-\u30FC]{2,}/g);
+  if (matches) {
+    matches.forEach(word => {
+      if (!ignoreWords.has(word) && word.length >= 2 && word.length <= 10) {
+        autoExtracted.add(word);
+      }
+    });
+  }
+});
+
+// 手動リスト ＋ 自動抽出された単語を結合
+const allCandidates = Array.from(new Set([...manualKeywords, ...autoExtracted]));
+
+// 実際に記事内に含まれており、かつ出現頻度が極端すぎない単語を抽出
+const presentKeywords = allCandidates.filter(word => {
+  const count = articles.reduce((acc, article) => {
     const text = `${article.title || ''} ${article.text || article.content || ''}`;
-    return text.includes(word);
-  });
+    return text.includes(word) ? acc + 1 : acc;
+  }, 0);
+  // 1件以上ヒットし、全体（全記事）の8割を超えるような超頻出語は除く
+  return count > 0 && count < articles.length * 0.8;
 });
 ---
 
