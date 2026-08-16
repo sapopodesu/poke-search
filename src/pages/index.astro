@@ -194,13 +194,18 @@ const keywordGroups = {
         <button type="button" class="tag-btn" data-word="${word}">#${word}</button>
       `).join('');
 
-      tagListDiv.querySelectorAll('.tag-btn').forEach(btn => {
+tagListDiv.querySelectorAll('.tag-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-          queryInput.value = btn.dataset.word;
+          const word = btn.dataset.word;
+          queryInput.value = word;
           render();
+          
+          // タグクリック時にGA4へ送信
+          if (typeof gtag === 'function') {
+            gtag('event', 'search', { search_term: word });
+          }
         });
       });
-    }
 
     function highlightText(text, keyword) {
       if (!text) return '';
@@ -263,10 +268,19 @@ const keywordGroups = {
       }).join('');
     }
 
-    if (shuffleBtn) {
+if (shuffleBtn) {
       shuffleBtn.addEventListener('click', renderTags);
     }
     queryInput.addEventListener('input', render);
+
+    // 自由入力が確定したとき（Enter時やフォーカスが外れた時）にGA4へ送信
+    queryInput.addEventListener('change', (e) => {
+      const q = e.target.value.trim();
+      if (q && typeof gtag === 'function') {
+        gtag('event', 'search', { search_term: q });
+      }
+    });
+
     startSelect.addEventListener('change', render);
     endSelect.addEventListener('change', render);
 
