@@ -1,7 +1,7 @@
 ---
 import articles from '../data/articles.json';
 
-// ユーザーが「検索してみたくなる」戦術・ギミック・型の候補リスト
+// 検索したくなる戦術・ギミックの候補リスト
 const conceptKeywords = [
   'TOD', 'バトン', '受けル', '受けループ', '壁展開', 'ステロ', 'みがまも', 
   '対面', '一撃', 'トリル', '毒菱', '晴れ', '雨', '砂', '雪', '起点', 
@@ -9,17 +9,13 @@ const conceptKeywords = [
   '弱点保険', '呪い', 'あくび', 'イリュージョン', '変態', 'マイナー', '絶対零度'
 ];
 
-// 記事内に実際に存在するギミックキーワードを抽出
+// 記事内に実際に存在するキーワードだけを抽出
 const presentKeywords = conceptKeywords.filter(word => {
   return articles.some(article => {
     const text = `${article.title || ''} ${article.text || article.content || ''}`;
     return text.includes(word);
   });
 });
-
-// ページ更新（またはビルド）ごとにランダムに10個選出
-const shuffled = [...presentKeywords].sort(() => Math.random() - 0.5);
-const topKeywords = shuffled.slice(0, 10);
 ---
 
 <!DOCTYPE html>
@@ -47,9 +43,12 @@ const topKeywords = shuffled.slice(0, 10);
     select { padding: 10px 14px; font-size: 16px; border: 1px solid #cbd5e1; border-radius: 6px; }
     .range-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
     
-    /* トレンドタグのスタイル */
+    /* トレンドタグ関連スタイル */
     .trends-container { margin-bottom: 20px; font-size: 14px; color: #475569; }
-    .tag-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+    .trends-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+    .shuffle-btn { background: none; border: none; color: #2563eb; font-size: 13px; cursor: pointer; text-decoration: underline; padding: 0; }
+    .shuffle-btn:hover { color: #1d4ed8; }
+    .tag-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
     .tag-btn { background-color: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 16px; padding: 4px 12px; font-size: 13px; color: #334155; cursor: pointer; transition: all 0.2s; }
     .tag-btn:hover { background-color: #2563eb; color: #ffffff; border-color: #2563eb; }
 
@@ -92,25 +91,26 @@ const topKeywords = shuffled.slice(0, 10);
     </div>
   </div>
 
-  <!-- 注目ギミックタグ表示 -->
+  <!-- 動的ギミックタグ表示 -->
   <div class="trends-container">
-    <strong>🎲 気になる戦術・ギミックで検索:</strong>
-    <div class="tag-list">
-      {topKeywords.map(keyword => (
-        <button type="button" class="tag-btn" data-word={keyword}>#{keyword}</button>
-      ))}
+    <div class="trends-header">
+      <strong>🎲 気になる戦術・ギミックで検索:</strong>
+      <button type="button" id="shuffle-btn" class="shuffle-btn">🔄 他のキーワード</button>
     </div>
+    <div id="tag-list" class="tag-list"></div>
   </div>
 
   <div id="results-count" style="margin-bottom: 12px; color: #64748b; font-size: 14px;"></div>
   <div id="results"></div>
 
-  <script is:inline define:vars={{ articles }}>
+  <script is:inline define:vars={{ articles, presentKeywords }}>
     const queryInput = document.getElementById('query');
     const startSelect = document.getElementById('season-start');
     const endSelect = document.getElementById('season-end');
     const resultsDiv = document.getElementById('results');
     const countDiv = document.getElementById('results-count');
+    const tagListDiv = document.getElementById('tag-list');
+    const shuffleBtn = document.getElementById('shuffle-btn');
 
     const rawSeasons = [...new Set(articles.map(a => a.season))].filter(Boolean);
     const sortedSeasons = rawSeasons.sort((a, b) => {
@@ -128,6 +128,23 @@ const topKeywords = shuffled.slice(0, 10);
       opt2.textContent = `シーズン ${s}`;
       endSelect.appendChild(opt2);
     });
+
+    // キーワードをクライアント側でランダム抽出・描画する関数
+    function renderTags() {
+      const shuffled = [...presentKeywords].sort(() => Math.random() - 0.5);
+      const selected = shuffled.slice(0, 10);
+
+      tagListDiv.innerHTML = selected.map(word => `
+        <button type="button" class="tag-btn" data-word="${word}">#${word}</button>
+      `).join('');
+
+      tagListDiv.querySelectorAll('.tag-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          queryInput.value = btn.dataset.word;
+          render();
+        });
+      });
+    }
 
     function highlightText(text, keyword) {
       if (!text) return '';
@@ -190,16 +207,12 @@ const topKeywords = shuffled.slice(0, 10);
       }).join('');
     }
 
-    document.querySelectorAll('.tag-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        queryInput.value = btn.dataset.word;
-        render();
-      });
-    });
-
+    shuffleBtn.addEventListener('click', renderTags);
     queryInput.addEventListener('input', render);
     startSelect.addEventListener('change', render);
     endSelect.addEventListener('change', render);
+
+    renderTags();
     render();
   </script>
 </body>
