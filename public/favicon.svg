@@ -1,19 +1,13 @@
-<!-- public/favicon.svg (ポケモン検索アイコン) -->
+<!-- public/favicon.svg (安全な検索アイコン) -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <!-- モンスターボールの外枠 -->
-  <circle cx="50" cy="50" r="45" fill="#ffffff" stroke="#1e293b" stroke-width="6"/>
-  
-  <!-- 上半分（赤） -->
-  <path d="M 5 50 A 45 45 0 0 1 95 50 Z" fill="#ef4444" stroke="#1e293b" stroke-width="3"/>
-  <!-- 下半分（白） -->
-  <path d="M 5 50 A 45 45 0 0 0 95 50 Z" fill="#ffffff" stroke="#1e293b" stroke-width="3"/>
-  
-  <!-- 中央のボタン部分（ここを虫眼鏡に変更） -->
-  <circle cx="50" cy="50" r="15" fill="#ffffff" stroke="#1e293b" stroke-width="5"/>
-  
-  <!-- 検索の虫眼鏡アイコン -->
-  <g transform="translate(38, 38) scale(0.25)">
-    <circle cx="48" cy="48" r="36" fill="none" stroke="#1e293b" stroke-width="8"/>
-    <line x1="75" y1="75" x2="108" y2="108" stroke="#1e293b" stroke-width="12" stroke-linecap="round"/>
-  </g>
+  <!-- 背景 (クリーンな白) -->
+  <rect width="100" height="100" fill="#ffffff"/>
+
+  <!-- 虫眼鏡のアウトライン (濃いグレー/ブルー) -->
+  <circle cx="50" cy="46" r="30" fill="none" stroke="#1e293b" stroke-width="8"/>
+  <line x1="72" y1="68" x2="88" y2="84" stroke="#1e293b" stroke-width="8" stroke-linecap="round"/>
+
+  <!-- レンズ内部の検索表現 (光の輝き) -->
+  <circle cx="50" cy="46" r="15" fill="#2563eb"/>
+  <circle cx="55" cy="40" r="6" fill="#ffffff" opacity="0.6"/>
 </svg>
