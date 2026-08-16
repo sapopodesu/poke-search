@@ -1,5 +1,8 @@
 ---
 import articles from '../data/articles.json';
+
+// 全記事からユニークなシーズン一覧を取得
+const seasons = [...new Set(articles.map(a => a.season))];
 ---
 
 <!DOCTYPE html>
@@ -24,6 +27,8 @@ import articles from '../data/articles.json';
     h1 { font-size: 24px; margin-bottom: 20px; }
     .search-box { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
     input { padding: 10px 14px; font-size: 16px; border: 1px solid #cbd5e1; border-radius: 6px; flex: 1; min-width: 200px; }
+    select { padding: 10px 14px; font-size: 16px; border: 1px solid #cbd5e1; border-radius: 6px; }
+    .range-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
     .card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 12px; background-color: #fff; }
     .card h3 { margin: 0 0 8px 0; font-size: 18px; }
     .card a { color: #2563eb; text-decoration: none; }
@@ -31,7 +36,7 @@ import articles from '../data/articles.json';
     .meta { font-size: 14px; color: #64748b; margin-bottom: 8px; }
     .snippet { font-size: 14px; color: #334155; }
 
-    /* シーズン表記の強調スタイル */
+    /* シーズン表記の強調バッジ */
     .season-badge {
       font-weight: bold;
       color: #0f172a;
@@ -52,6 +57,17 @@ import articles from '../data/articles.json';
 
   <div class="search-box">
     <input type="text" id="searchInput" placeholder="検索ワードを入力（例：サーナイト、オーガポン）" />
+    <div class="range-group">
+      <select id="startSeason">
+        <option value="">開始シーズン</option>
+        {seasons.map(s => <option value={s}>{s}</option>)}
+      </select>
+      <span>〜</span>
+      <select id="endSeason">
+        <option value="">終了シーズン</option>
+        {seasons.map(s => <option value={s}>{s}</option>)}
+      </select>
+    </div>
   </div>
 
   <div id="resultCount" style="margin-bottom: 16px; font-weight: bold; color: #64748b;"></div>
@@ -74,11 +90,20 @@ import articles from '../data/articles.json';
 
   <script is:inline>
     const searchInput = document.getElementById('searchInput');
+    const startSeason = document.getElementById('startSeason');
+    const endSeason = document.getElementById('endSeason');
     const cards = document.querySelectorAll('.card');
     const resultCount = document.getElementById('resultCount');
 
     function filterArticles() {
       const keyword = searchInput.value.trim().toLowerCase();
+      const startVal = startSeason.value;
+      const endVal = endSeason.value;
+
+      const seasonOptions = Array.from(startSeason.options).map(o => o.value).filter(Boolean);
+      const startIdx = startVal ? seasonOptions.indexOf(startVal) : -1;
+      const endIdx = endVal ? seasonOptions.indexOf(endVal) : -1;
+
       let visibleCount = 0;
 
       cards.forEach(card => {
@@ -86,10 +111,23 @@ import articles from '../data/articles.json';
         const contentEl = card.querySelector('.article-content');
         const rawTitle = card.dataset.title;
         const rawContent = card.dataset.content;
+        const cardSeason = card.dataset.season;
 
+        // キーワード判定
         const matchesKeyword = !keyword || rawTitle.toLowerCase().includes(keyword) || rawContent.toLowerCase().includes(keyword);
 
-        if (matchesKeyword) {
+        // シーズン範囲判定
+        let matchesSeason = true;
+        if (startIdx !== -1 || endIdx !== -1) {
+          const cardSeasonIdx = seasonOptions.indexOf(cardSeason);
+          if (cardSeasonIdx !== -1) {
+            const minIdx = startIdx !== -1 && endIdx !== -1 ? Math.min(startIdx, endIdx) : (startIdx !== -1 ? startIdx : 0);
+            const maxIdx = startIdx !== -1 && endIdx !== -1 ? Math.max(startIdx, endIdx) : (endIdx !== -1 ? endIdx : seasonOptions.length - 1);
+            matchesSeason = cardSeasonIdx >= minIdx && cardSeasonIdx <= maxIdx;
+          }
+        }
+
+        if (matchesKeyword && matchesSeason) {
           card.style.display = 'block';
           visibleCount++;
 
@@ -111,6 +149,9 @@ import articles from '../data/articles.json';
     }
 
     searchInput.addEventListener('input', filterArticles);
+    startSeason.addEventListener('change', filterArticles);
+    endSeason.addEventListener('change', filterArticles);
+
     filterArticles();
   </script>
 </body>
