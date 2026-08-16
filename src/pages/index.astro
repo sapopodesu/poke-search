@@ -43,7 +43,6 @@ const presentKeywords = conceptKeywords.filter(word => {
     select { padding: 10px 14px; font-size: 16px; border: 1px solid #cbd5e1; border-radius: 6px; }
     .range-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
     
-    /* トレンドタグ関連スタイル */
     .trends-container { margin-bottom: 20px; font-size: 14px; color: #475569; }
     .trends-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
     .shuffle-btn { background: none; border: none; color: #2563eb; font-size: 13px; cursor: pointer; text-decoration: underline; padding: 0; }
@@ -79,7 +78,6 @@ const presentKeywords = conceptKeywords.filter(word => {
   <div class="search-box">
     <input type="text" id="query" placeholder="キーワードを入力 (例: 害悪)" />
     
-    <!-- シーズン範囲選択 -->
     <div class="range-group">
       <select id="season-start">
         <option value="">開始シーズン</option>
@@ -91,7 +89,6 @@ const presentKeywords = conceptKeywords.filter(word => {
     </div>
   </div>
 
-  <!-- 動的ギミックタグ表示 -->
   <div class="trends-container">
     <div class="trends-header">
       <strong>🎲 気になる戦術・ギミックで検索:</strong>
@@ -129,7 +126,6 @@ const presentKeywords = conceptKeywords.filter(word => {
       endSelect.appendChild(opt2);
     });
 
-    // キーワードをクライアント側でランダム抽出・描画する関数
     function renderTags() {
       const shuffled = [...presentKeywords].sort(() => Math.random() - 0.5);
       const selected = shuffled.slice(0, 10);
@@ -207,7 +203,9 @@ const presentKeywords = conceptKeywords.filter(word => {
       }).join('');
     }
 
-    shuffleBtn.addEventListener('click', renderTags);
+    if (shuffleBtn) {
+      shuffleBtn.addEventListener('click', renderTags);
+    }
     queryInput.addEventListener('input', render);
     startSelect.addEventListener('change', render);
     endSelect.addEventListener('change', render);
