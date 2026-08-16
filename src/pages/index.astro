@@ -1,158 +1,201 @@
 ---
 import articles from '../data/articles.json';
+
+// 全記事からユニークなシーズン一覧を取得
+const seasons = [...new Set(articles.map(a => a.season))];
+
+// 除外する一般的な単語（ストップワード）
+const stopWords = new Set(['シーズン', 'パーティ', 'パーティー', '構築', '記事', 'メイン', 'チェック']);
+
+// 記事タイトルと本文からカタカナ語（ポケモン名・アイテム名など）を抽出して頻出カウント
+const wordCounts: Record<string, number> = {};
+articles.forEach(article => {
+  const text = `${article.title} ${article.content}`;
+  const matches = text.match(/[ァ-ヴー]{2,}/g) || [];
+  matches.forEach(word => {
+    if (!stopWords.has(word)) {
+      wordCounts[word] = (wordCounts[word] || 0) + 1;
+    }
+  });
+});
+
+// 出現回数順に並べ替えて上位10個を取得
+const topKeywords = Object.entries(wordCounts)
+  .sort((a, b) => b[1] - a[1])
+  .slice(0, 10)
+  .map(([word]) => word);
 ---
 
 <!DOCTYPE html>
 <html lang="ja">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ポケモンチャンピオンズ構築記事検索</title>
-    <style>
-      body { font-family: system-ui, sans-serif; max-width: 800px; margin: 0 auto; padding: 24px 16px; line-height: 1.6; color: #1e293b; }
-      h1 { font-size: 24px; margin-bottom: 20px; }
-      .search-box { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
-      input { padding: 10px 14px; font-size: 16px; border: 1px solid #cbd5e1; border-radius: 6px; flex: 1; min-width: 200px; }
-      select { padding: 10px 14px; font-size: 16px; border: 1px solid #cbd5e1; border-radius: 6px; }
-      .range-group { display: flex; align-items: center; gap: 6px; }
-      .card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 12px; background-color: #fff; }
-      .card h3 { margin: 0 0 8px 0; font-size: 18px; }
-      .card a { color: #2563eb; text-decoration: none; }
-      .card a:hover { text-decoration: underline; }
-      .meta { font-size: 14px; color: #64748b; margin-bottom: 8px; }
-      .snippet { font-size: 14px; color: #334155; }
-      
-      /* 検索ワードの太字＆ハイライト表示 */
-      mark { background-color: #fef08a; font-weight: bold; color: #0f172a; padding: 0 2px; border-radius: 2px; }
-    </style>
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-09WNKMPZKP"></script>
-<script is:inline>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ポケモンチャンピオンズ構築記事検索</title>
 
-  gtag('config', 'G-09WNKMPZKP');
-</script>
-  </head>
-  <body>
-    <h1>ポケモンチャンピオンズ構築記事検索</h1>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-09WNKMPZKP"></script>
+  <script is:inline>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
 
-    <div class="search-box">
-      <input type="text" id="query" placeholder="キーワードを入力 (例: 害悪)" />
-      
-      <!-- シーズン範囲選択 -->
-      <div class="range-group">
-        <select id="season-start">
-          <option value="">開始シーズン</option>
-        </select>
-        <span>〜</span>
-        <select id="season-end">
-          <option value="">終了シーズン</option>
-        </select>
-      </div>
+    gtag('config', 'G-09WNKMPZKP');
+  </script>
+
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 800px; margin: 0 auto; padding: 24px 16px; line-height: 1.6; color: #1e293b; }
+    h1 { font-size: 24px; margin-bottom: 20px; }
+    .search-box { display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; align-items: center; }
+    input { padding: 10px 14px; font-size: 16px; border: 1px solid #cbd5e1; border-radius: 6px; flex: 1; min-width: 200px; }
+    select { padding: 10px 14px; font-size: 16px; border: 1px solid #cbd5e1; border-radius: 6px; }
+    .range-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    
+    /* トレンドタグのスタイル */
+    .trends-container { margin-bottom: 20px; font-size: 14px; color: #475569; }
+    .tag-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+    .tag-btn { background-color: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 16px; padding: 4px 12px; font-size: 13px; color: #334155; cursor: pointer; transition: all 0.2s; }
+    .tag-btn:hover { background-color: #2563eb; color: #ffffff; border-color: #2563eb; }
+
+    .card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 12px; background-color: #fff; }
+    .card h3 { margin: 0 0 8px 0; font-size: 18px; }
+    .card a { color: #2563eb; text-decoration: none; }
+    .card a:hover { text-decoration: underline; }
+    .meta { font-size: 14px; color: #64748b; margin-bottom: 8px; }
+    .snippet { font-size: 14px; color: #334155; }
+
+    .season-badge {
+      font-weight: bold;
+      color: #0f172a;
+      background-color: #e2e8f0;
+      padding: 3px 8px;
+      border-radius: 4px;
+      display: inline-block;
+      margin-bottom: 6px;
+      font-size: 14px;
+    }
+
+    mark { background-color: #fef08a; font-weight: bold; color: #0f172a; padding: 0 2px; border-radius: 2px; }
+  </style>
+</head>
+<body>
+  <h1>ポケモンチャンピオンズ構築記事検索</h1>
+
+  <div class="search-box">
+    <input type="text" id="searchInput" placeholder="検索ワードを入力（例：サーナイト、オーガポン）" />
+    <div class="range-group">
+      <select id="startSeason">
+        <option value="">開始シーズン</option>
+        {seasons.map(s => <option value={s}>{s}</option>)}
+      </select>
+      <span>〜</span>
+      <select id="endSeason">
+        <option value="">終了シーズン</option>
+        {seasons.map(s => <option value={s}>{s}</option>)}
+      </select>
     </div>
+  </div>
 
-    <div id="results-count" style="margin-bottom: 12px; color: #64748b; font-size: 14px;"></div>
-    <div id="results"></div>
+  <!-- 頻出キーワードタグ表示 -->
+  <div class="trends-container">
+    <strong>🔥 注目キーワード:</strong>
+    <div class="tag-list">
+      {topKeywords.map(keyword => (
+        <button type="button" class="tag-btn" data-word={keyword}>#{keyword}</button>
+      ))}
+    </div>
+  </div>
 
-    <script is:inline define:vars={{ articles }}>
-      const queryInput = document.getElementById('query');
-      const startSelect = document.getElementById('season-start');
-      const endSelect = document.getElementById('season-end');
-      const resultsDiv = document.getElementById('results');
-      const countDiv = document.getElementById('results-count');
+  <div id="resultCount" style="margin-bottom: 16px; font-weight: bold; color: #64748b;"></div>
 
-      // シーズン一覧の抽出とソート
-      const rawSeasons = [...new Set(articles.map(a => a.season))].filter(Boolean);
-      const sortedSeasons = rawSeasons.sort((a, b) => {
-        return String(a).localeCompare(String(b), undefined, { numeric: true });
-      });
+  <div id="articlesList">
+    {articles.map((article) => (
+      <div class="card" data-title={article.title} data-content={article.content} data-season={article.season}>
+        <h3>
+          <a href={article.url} target="_blank" rel="noopener noreferrer">
+            <span class="article-title">{article.title}</span>
+          </a>
+        </h3>
+        <div class="meta">
+          <strong class="season-badge">{article.season}</strong>
+        </div>
+        <p class="snippet article-content">{article.content}</p>
+      </div>
+    ))}
+  </div>
 
-      // 範囲選択ドロップダウンの動的作成
-      sortedSeasons.forEach(s => {
-        const opt1 = document.createElement('option');
-        opt1.value = s;
-        opt1.textContent = `シーズン ${s}`;
-        startSelect.appendChild(opt1);
+  <script is:inline>
+    const searchInput = document.getElementById('searchInput');
+    const startSeason = document.getElementById('startSeason');
+    const endSeason = document.getElementById('endSeason');
+    const cards = document.querySelectorAll('.card');
+    const resultCount = document.getElementById('resultCount');
+    const tagButtons = document.querySelectorAll('.tag-btn');
 
-        const opt2 = document.createElement('option');
-        opt2.value = s;
-        opt2.textContent = `シーズン ${s}`;
-        endSelect.appendChild(opt2);
-      });
+    function filterArticles() {
+      const keyword = searchInput.value.trim().toLowerCase();
+      const startVal = startSeason.value;
+      const endVal = endSeason.value;
 
-      // 検索ワードを太字・ハイライト化する関数
-      function highlightText(text, keyword) {
-        if (!text) return '';
-        if (!keyword) return text;
-        const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const regex = new RegExp(`(${escaped})`, 'gi');
-        return text.replace(regex, '<mark>$1</mark>');
-      }
+      const seasonOptions = Array.from(startSeason.options).map(o => o.value).filter(Boolean);
+      const startIdx = startVal ? seasonOptions.indexOf(startVal) : -1;
+      const endIdx = endVal ? seasonOptions.indexOf(endVal) : -1;
 
-      function render() {
-        const q = queryInput.value.trim().toLowerCase();
-        const startVal = startSelect.value;
-        const endVal = endSelect.value;
+      let visibleCount = 0;
 
-        const startIndex = startVal ? sortedSeasons.indexOf(startVal) : 0;
-        const endIndex = endVal ? sortedSeasons.indexOf(endVal) : sortedSeasons.length - 1;
+      cards.forEach(card => {
+        const titleEl = card.querySelector('.article-title');
+        const contentEl = card.querySelector('.article-content');
+        const rawTitle = card.dataset.title;
+        const rawContent = card.dataset.content;
+        const cardSeason = card.dataset.season;
 
-        const filtered = articles.filter(item => {
-          // キーワード判定
-          const matchQuery = !q || 
-            (item.title && item.title.toLowerCase().includes(q)) || 
-            (item.text && item.text.toLowerCase().includes(q));
+        const matchesKeyword = !keyword || rawTitle.toLowerCase().includes(keyword) || rawContent.toLowerCase().includes(keyword);
 
-          // 範囲判定
-          const itemSeasonIndex = sortedSeasons.indexOf(item.season);
-          let matchSeason = true;
-          if (startVal || endVal) {
-            if (itemSeasonIndex !== -1) {
-              const minIdx = Math.min(startIndex, endIndex);
-              const maxIdx = Math.max(startIndex, endIndex);
-              matchSeason = itemSeasonIndex >= minIdx && itemSeasonIndex <= maxIdx;
-            }
+        let matchesSeason = true;
+        if (startIdx !== -1 || endIdx !== -1) {
+          const cardSeasonIdx = seasonOptions.indexOf(cardSeason);
+          if (cardSeasonIdx !== -1) {
+            const minIdx = startIdx !== -1 && endIdx !== -1 ? Math.min(startIdx, endIdx) : (startIdx !== -1 ? startIdx : 0);
+            const maxIdx = startIdx !== -1 && endIdx !== -1 ? Math.max(startIdx, endIdx) : (endIdx !== -1 ? endIdx : seasonOptions.length - 1);
+            matchesSeason = cardSeasonIdx >= minIdx && cardSeasonIdx <= maxIdx;
           }
+        }
 
-          return matchQuery && matchSeason;
-        });
+        if (matchesKeyword && matchesSeason) {
+          card.style.display = 'block';
+          visibleCount++;
 
-        countDiv.textContent = `該当件数: ${filtered.length} 件`;
-
-        resultsDiv.innerHTML = filtered.slice(0, 50).map(item => {
-          // タイトル先頭に【シーズン】を必ず表示
-          const seasonDisplay = item.season ? `【シーズン ${item.season}】` : '';
-          const fullTitle = `${seasonDisplay}${item.title || ''}`;
-          const highlightedTitle = highlightText(fullTitle, q);
-
-          // スニペット切り出しとハイライト
-          let snippet = item.text || '';
-          if (q && snippet.toLowerCase().includes(q)) {
-            const idx = snippet.toLowerCase().indexOf(q);
-            const start = Math.max(0, idx - 40);
-            const end = Math.min(snippet.length, idx + 100);
-            snippet = (start > 0 ? '...' : '') + snippet.slice(start, end) + (end < snippet.length ? '...' : '');
+          if (keyword) {
+            const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regex = new RegExp(`(${escaped})`, 'gi');
+            titleEl.innerHTML = rawTitle.replace(regex, '<mark>$1</mark>');
+            contentEl.innerHTML = rawContent.replace(regex, '<mark>$1</mark>');
           } else {
-            snippet = snippet.slice(0, 120) + (snippet.length > 120 ? '...' : '');
+            titleEl.textContent = rawTitle;
+            contentEl.textContent = rawContent;
           }
-          const highlightedSnippet = highlightText(snippet, q);
+        } else {
+          card.style.display = 'none';
+        }
+      });
 
-          return `
-            <div class="card">
-              <h3><a href="${item.url}" target="_blank" rel="noopener noreferrer">${highlightedTitle}</a></h3>
-              <div class="meta">シーズン: ${item.season || '不明'}</div>
-              <div class="snippet">${highlightedSnippet}</div>
-            </div>
-          `;
-        }).join('');
-      }
+      resultCount.textContent = `該当件数: ${visibleCount} 件`;
+    }
 
-      queryInput.addEventListener('input', render);
-      startSelect.addEventListener('change', render);
-      endSelect.addEventListener('change', render);
-      render();
-    </script>
-  </body>
+    // タグをクリックした時に検索窓に入力して検索実行
+    tagButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        searchInput.value = btn.dataset.word;
+        filterArticles();
+      });
+    });
+
+    searchInput.addEventListener('input', filterArticles);
+    startSeason.addEventListener('change', filterArticles);
+    endSeason.addEventListener('change', filterArticles);
+
+    filterArticles();
+  </script>
+</body>
 </html>
